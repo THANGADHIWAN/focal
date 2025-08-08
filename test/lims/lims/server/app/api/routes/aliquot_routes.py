@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.db.database import get_db
-from app.schemas import ApiResponse, AliquotCreate, AliquotUpdate
+from app.api.schemas import ApiResponse, AliquotCreate, AliquotUpdate
 from app.services.aliquot_service import AliquotService
 from app.utils.constants import Location
 

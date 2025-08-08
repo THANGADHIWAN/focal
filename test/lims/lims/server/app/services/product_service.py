@@ -12,7 +12,7 @@ import uuid
 from app.db.models.product import Product
 from app.db.models.sample import Sample
 from app.db.models.test import Test
-from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse, ProductListResponse, ProductSummary
+from app.api.schemas.product import ProductCreate, ProductUpdate, ProductResponse, ProductListResponse, ProductSummary
 from app.utils.constants import ProductStatus
 
 # Set up logging

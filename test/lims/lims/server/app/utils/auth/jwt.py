@@ -1,20 +1,17 @@
 """
-Utility functions for the application
+JWT token handling utilities.
 """
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 import os
 from jose import jwt
-from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.db.models import Users
 from app.db.database import get_db
-
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from .password import verify_password
 
 # OAuth2 token URL
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -23,32 +20,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 SECRET_KEY = os.getenv("SECRET_KEY", "changeThisToASecureKeyInProduction")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verify a plain password against a hashed password
-    """
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_password_hash(password: str) -> str:
-    """
-    Hash a password
-    """
-    return pwd_context.hash(password)
-
-def authenticate_user(db: Session, email: str, password: str) -> Optional[Users]:
-    """
-    Authenticate a user by email and password
-    """
-    user = db.query(Users).filter(Users.email == email).first()
-    
-    if not user:
-        return None
-    
-    if not verify_password(password, user.hashed_password):
-        return None
-    
-    return user
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """

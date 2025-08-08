@@ -1,183 +1,128 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-
-export type EquipmentType = 'HPLC' | 'Centrifuge' | 'Microscope' | 'PCR' | 'Spectrophotometer' | 'Balance' | 'pH Meter';
-export type EquipmentStatus = 'Available' | 'In Use' | 'Under Maintenance' | 'Out of Service' | 'Quarantined';
-
-export interface Equipment {
-  id: string;
-  name: string;
-  description: string;
-  type: EquipmentType;
-  model: string;
-  manufacturer: string;
-  serialNumber: string;
-  location: string;
-  status: EquipmentStatus;
-  assignedTo?: string;
-  team?: string;
-  calibration: {
-    lastDate: string;
-    nextDate: string;
-    calibratedBy: string;
-    certificate?: string;
-  };
-  maintenanceHistory: {
-    id: string;
-    date: string;
-    performedBy: string;
-    task: string;
-    status: string;
-    notes?: string;
-  }[];
-  notes: {
-    id: string;
-    content: string;
-    timestamp: string;
-    user: string;
-  }[];
-  attachments: {
-    id: string;
-    name: string;
-    type: string;
-    url: string;
-    uploadedAt: string;
-  }[];
-}
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import equipmentService from '../api/services/equipmentService';
+import type { Equipment, MaintenanceRecord } from '../types/equipment';
 
 interface EquipmentContextType {
   equipment: Equipment[];
-  addEquipment: (item: Omit<Equipment, 'id' | 'maintenanceHistory' | 'notes' | 'attachments'>) => void;
-  updateEquipment: (id: string, updates: Partial<Equipment>) => void;
-  deleteEquipment: (id: string) => void;
-  addMaintenanceRecord: (id: string, record: Omit<Equipment['maintenanceHistory'][0], 'id'>) => void;
-  addNote: (id: string, content: string, user: string) => void;
-  addAttachment: (id: string, file: Omit<Equipment['attachments'][0], 'id'>) => void;
+  isLoading: boolean;
+  error: string | null;
+  addEquipment: (item: Omit<Equipment, 'id' | 'maintenanceHistory' | 'notes' | 'attachments'>) => Promise<Equipment>;
+  updateEquipment: (id: string, updates: Partial<Equipment>) => Promise<Equipment>;
+  deleteEquipment: (id: string) => Promise<void>;
+  addMaintenanceRecord: (id: string, record: Omit<Equipment['maintenanceHistory'][0], 'id'>) => Promise<Equipment>;
+  addNote: (id: string, content: string, user: string) => Promise<Equipment>;
+  addAttachment: (id: string, file: FormData) => Promise<Equipment>;
+  refreshEquipment: () => Promise<void>;
 }
 
 const EquipmentContext = createContext<EquipmentContextType | undefined>(undefined);
 
-const mockEquipment: Equipment[] = [
-  {
-    id: 'EQP-001',
-    name: 'Agilent 1260 HPLC',
-    description: 'High-performance liquid chromatography system for analytical chemistry',
-    type: 'HPLC',
-    model: '1260 Infinity II',
-    manufacturer: 'Agilent',
-    serialNumber: 'DEAAB12345',
-    location: 'Lab 1',
-    status: 'Available',
-    assignedTo: 'Dr. Sarah Chen',
-    team: 'Analytical Chemistry',
-    calibration: {
-      lastDate: '2024-02-15',
-      nextDate: '2024-05-15',
-      calibratedBy: 'TechCal Services',
-    },
-    maintenanceHistory: [
-      {
-        id: 'MNT-001',
-        date: '2024-02-15',
-        performedBy: 'John Smith',
-        task: 'Quarterly Maintenance',
-        status: 'Completed',
-        notes: 'Replaced pump seals, performed system test'
-      }
-    ],
-    notes: [],
-    attachments: []
-  }
-];
-
 export function EquipmentProvider({ children }: { children: ReactNode }) {
-  const [equipment, setEquipment] = useState<Equipment[]>(mockEquipment);
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const addEquipment = (newEquipment: Omit<Equipment, 'id' | 'maintenanceHistory' | 'notes' | 'attachments'>) => {
-    const id = `EQP-${String(equipment.length + 1).padStart(3, '0')}`;
-    setEquipment(prev => [...prev, {
-      ...newEquipment,
-      id,
-      maintenanceHistory: [],
-      notes: [],
-      attachments: []
-    }]);
+  const refreshEquipment = async () => {
+    try {
+      setIsLoading(true);
+      const response = await equipmentService.getAllEquipment();
+      setEquipment(response.data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load equipment');
+      console.error('Error loading equipment:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const updateEquipment = (id: string, updates: Partial<Equipment>) => {
-    setEquipment(prev => prev.map(item => 
-      item.id === id ? { ...item, ...updates } : item
-    ));
+  useEffect(() => {
+    refreshEquipment();
+  }, []);
+
+  const addEquipment = async (newEquipment: Omit<Equipment, 'id' | 'maintenanceHistory' | 'notes' | 'attachments'>) => {
+    try {
+      const added = await equipmentService.createEquipment(newEquipment);
+      setEquipment(prev => [...prev, added]);
+      return added;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to add equipment';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
   };
 
-  const deleteEquipment = (id: string) => {
-    setEquipment(prev => prev.filter(item => item.id !== id));
+  const updateEquipment = async (id: string, updates: Partial<Equipment>) => {
+    try {
+      const updated = await equipmentService.updateEquipment(id, updates);
+      setEquipment(prev => prev.map(item => item.id === id ? updated : item));
+      return updated;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update equipment';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
   };
 
-  const addMaintenanceRecord = (id: string, record: Omit<Equipment['maintenanceHistory'][0], 'id'>) => {
-    setEquipment(prev => prev.map(item => {
-      if (item.id === id) {
-        return {
-          ...item,
-          maintenanceHistory: [
-            ...item.maintenanceHistory,
-            {
-              id: `MNT-${String(item.maintenanceHistory.length + 1).padStart(3, '0')}`,
-              ...record
-            }
-          ]
-        };
-      }
-      return item;
-    }));
+  const deleteEquipment = async (id: string) => {
+    try {
+      await equipmentService.deleteEquipment(id);
+      setEquipment(prev => prev.filter(item => item.id !== id));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete equipment';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
   };
 
-  const addNote = (id: string, content: string, user: string) => {
-    setEquipment(prev => prev.map(item => {
-      if (item.id === id) {
-        return {
-          ...item,
-          notes: [
-            ...item.notes,
-            {
-              id: `NOTE-${Date.now()}`,
-              content,
-              timestamp: new Date().toISOString(),
-              user
-            }
-          ]
-        };
-      }
-      return item;
-    }));
+  const addMaintenanceRecord = async (id: string, record: Omit<MaintenanceRecord, 'id'>) => {
+    try {
+      const updated = await equipmentService.addMaintenanceRecord(id, record);
+      setEquipment(prev => prev.map(item => item.id === id ? updated : item));
+      return updated;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to add maintenance record';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
   };
 
-  const addAttachment = (id: string, file: Omit<Equipment['attachments'][0], 'id'>) => {
-    setEquipment(prev => prev.map(item => {
-      if (item.id === id) {
-        return {
-          ...item,
-          attachments: [
-            ...item.attachments,
-            {
-              id: `ATT-${Date.now()}`,
-              ...file
-            }
-          ]
-        };
-      }
-      return item;
-    }));
+  const addNote = async (id: string, content: string, user: string) => {
+    try {
+      const updated = await equipmentService.addNote(id, { content, user });
+      setEquipment(prev => prev.map(item => item.id === id ? updated : item));
+      return updated;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to add note';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
+  };
+
+  const addAttachment = async (id: string, file: FormData) => {
+    try {
+      const updated = await equipmentService.addAttachment(id, file);
+      setEquipment(prev => prev.map(item => item.id === id ? updated : item));
+      return updated;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to add attachment';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
   };
 
   return (
     <EquipmentContext.Provider value={{
       equipment,
+      isLoading,
+      error,
       addEquipment,
       updateEquipment,
       deleteEquipment,
       addMaintenanceRecord,
       addNote,
-      addAttachment
+      addAttachment,
+      refreshEquipment
     }}>
       {children}
     </EquipmentContext.Provider>

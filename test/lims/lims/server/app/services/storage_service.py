@@ -8,7 +8,7 @@ from fastapi import HTTPException
 import logging
 
 from app.db.models.storage_hierarchy import Box, Freezer
-from app.schemas.storage import BoxCreate, BoxUpdate, FreezerCreate, FreezerUpdate
+from app.api.schemas.storage import BoxCreate, BoxUpdate, FreezerCreate, FreezerUpdate
 
 # Set up logging
 logger = logging.getLogger(__name__)

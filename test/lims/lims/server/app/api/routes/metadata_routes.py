@@ -4,8 +4,9 @@ from typing import List, Optional
 import logging
 
 from app.db.database import get_db
-from app.schemas import ApiResponse
+from app.api.schemas import ApiResponse
 from app.services.metadata_service import MetadataService
+from app.api.routes.equipment import router as equipment_router
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -14,6 +15,9 @@ metadata_router = APIRouter(
     prefix="/metadata",
     tags=["metadata"]
 )
+
+# Include equipment routes
+metadata_router.include_router(equipment_router)
 
 # Storage router moved to storage_routes.py
 

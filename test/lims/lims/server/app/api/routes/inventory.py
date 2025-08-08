@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 from app.core.database import get_db
-from app.schemas.inventory import (
+from app.api.schemas.inventory import (
     MaterialCreate, MaterialUpdate, MaterialResponse,
     MaterialLotCreate, MaterialLotUpdate, MaterialLotResponse,
     MaterialUsageLogCreate, MaterialUsageLogResponse,

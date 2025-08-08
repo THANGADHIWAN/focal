@@ -12,7 +12,7 @@ from app.db.models.material import (
     MaterialUsageLog,
     MaterialInventoryAdjustment
 )
-from app.schemas.inventory import (
+from app.api.schemas.inventory import (
     MaterialCreate,
     MaterialUpdate,
     MaterialLotCreate,

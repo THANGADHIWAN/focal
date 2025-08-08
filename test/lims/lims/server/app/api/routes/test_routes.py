@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.db.database import get_db
-from app.schemas import ApiResponse, TestCreate, TestUpdate, TestMethodResponse
+from app.api.schemas import ApiResponse, TestCreate, TestUpdate, TestMethodResponse
 from app.services.test_service import TestService
 from app.utils.constants import TestStatus
 

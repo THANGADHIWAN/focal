@@ -13,7 +13,7 @@ import logging
 
 from app.db.models.sample import Sample, SampleType, Aliquot
 from app.db.models.test import Test
-from app.schemas import SampleCreate, SampleUpdate, SampleFilter, SampleResponse, AliquotSummary
+from app.api.schemas import SampleCreate, SampleUpdate, SampleFilter, SampleResponse, AliquotSummary
 
 # Set up logging
 logger = logging.getLogger(__name__)

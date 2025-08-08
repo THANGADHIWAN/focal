@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 import logging
 
-from app.schemas import ApiResponse
-from app.schemas.product import (
+from app.api.schemas import ApiResponse
+from app.api.schemas.product import (
     ProductCreate, ProductUpdate, ProductResponse, 
     ProductListResponse, ProductSummary
 )

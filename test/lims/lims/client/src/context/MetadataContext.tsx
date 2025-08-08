@@ -1,11 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import API from '../api';
 import {
-    SampleType,
-    SampleStatus,
-    LabLocation,
-    User,
-    StorageLocation,
     Equipment,
     EquipmentType,
     EquipmentStatus,
@@ -13,6 +8,10 @@ import {
     AvailableSlot,
     HealthStatus
 } from '../api/services/metadataService';
+import type { User } from '../types/user';
+import type { StorageLocation } from '../types/storage';
+import type { SampleType, SampleStatus } from '../types/sample';
+import type { LabLocation } from '../types/location';
 
 interface MetadataContextType {
     sampleTypes: SampleType[];
@@ -51,6 +50,11 @@ export function MetadataProvider({ children }: { children: ReactNode }) {
     const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Initial load effect
+    useEffect(() => {
+        refreshMetadata();
+    }, []);
 
     const refreshMetadata = useCallback(async () => {
         setLoading(true);

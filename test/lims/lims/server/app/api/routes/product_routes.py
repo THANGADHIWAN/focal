@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.db.database import get_db
-from app.schemas import ApiResponse
-from app.schemas.product import ProductCreate, ProductUpdate
+from app.api.schemas import ApiResponse
+from app.api.schemas.product import ProductCreate, ProductUpdate
 from app.services.product_service import ProductService
 from app.services.sample_service import SampleService
 from app.services.test_service import TestService

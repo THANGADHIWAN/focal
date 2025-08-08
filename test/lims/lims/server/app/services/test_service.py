@@ -4,7 +4,7 @@ Test service for the Sample Management API
 from sqlalchemy.orm import Session
 from app.db.models.sample import Aliquot, Sample
 from app.db.models.test import Test, TestMethod
-from app.schemas.test import TestCreate, TestUpdate, TestResponse, TestMethodResponse
+from app.api.schemas.test import TestCreate, TestUpdate, TestResponse, TestMethodResponse
 from typing import List, Optional
 from datetime import datetime
 

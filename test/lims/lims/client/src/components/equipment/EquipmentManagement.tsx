@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
-import { Plus, List, Columns, Search, Filter, Download, X, Trash2 } from 'lucide-react';
-import { useEquipment, EquipmentType, EquipmentStatus } from '../../context/EquipmentContext';
+import { useState, useCallback } from 'react';
+import { Plus, Search, Filter, Download, X, Trash2 } from 'lucide-react';
+import { useEquipment } from '../../context/EquipmentContext';
+import { useMetadata } from '../../context/MetadataContext';
+import type { Equipment } from '../../types/equipment';
+import type { EquipmentType, EquipmentStatus } from '../../api/services/metadataService';
+import { BaseEquipment } from '../../api/services/types';
 import EquipmentTable from './views/EquipmentTable';
 import NewEquipmentModal from './modals/NewEquipmentModal';
 
@@ -12,39 +16,23 @@ interface FilterState {
   calibrationDue: boolean;
 }
 
-const EQUIPMENT_TYPES: EquipmentType[] = [
-  'HPLC',
-  'Centrifuge',
-  'Microscope',
-  'PCR',
-  'Spectrophotometer',
-  'Balance',
-  'pH Meter'
-];
+interface EquipmentManagementProps {
+  onEquipmentClick?: (equipment: Equipment) => void;
+}
 
-const LOCATIONS = [
-  'Lab 1',
-  'Lab 2',
-  'Lab 3',
-  'Lab 4',
-  'Lab 5'
-];
-
-const MANUFACTURERS = [
-  'Agilent',
-  'Thermo Fisher',
-  'Waters',
-  'Shimadzu',
-  'Perkin Elmer'
-];
-
-const STATUSES: EquipmentStatus[] = [
-  'Available',
-  'In Use',
-  'Under Maintenance',
-  'Out of Service',
-  'Quarantined'
-];
+// Get static data from Metadata context
+function useEquipmentData() {
+  const { equipment } = useEquipment();
+  const { equipmentTypes, equipmentStatuses, labLocations } = useMetadata();
+  const manufacturers = Array.from(new Set(equipment.map(e => e.manufacturer))).sort();
+  
+  return {
+    types: equipmentTypes as EquipmentType[],
+    locations: labLocations.map(l => l.name),
+    manufacturers,
+    statuses: equipmentStatuses as EquipmentStatus[]
+  };
+}
 
 export default function EquipmentManagement({ onEquipmentClick }: EquipmentManagementProps) {
   const [isNewItemModalOpen, setIsNewItemModalOpen] = useState(false);
@@ -60,14 +48,20 @@ export default function EquipmentManagement({ onEquipmentClick }: EquipmentManag
     calibrationDue: false
   });
   const { equipment, deleteEquipment } = useEquipment();
+  const { types, locations, manufacturers, statuses } = useEquipmentData();
 
   const filteredEquipment = equipment.filter(item => {
-    const matchesType = filters.type.length === 0 || filters.type.includes(item.type);
-    const matchesLocation = filters.location.length === 0 || filters.location.includes(item.location);
-    const matchesStatus = filters.status.length === 0 || filters.status.includes(item.status);
-    const matchesManufacturer = filters.manufacturer.length === 0 || filters.manufacturer.includes(item.manufacturer);
+    const matchesType = filters.type.length === 0 || 
+      filters.type.includes(item.type as unknown as EquipmentType);
+    const matchesLocation = filters.location.length === 0 || 
+      filters.location.includes(item.location);
+    const matchesStatus = filters.status.length === 0 || 
+      filters.status.includes(item.status as unknown as EquipmentStatus);
+    const matchesManufacturer = filters.manufacturer.length === 0 || 
+      filters.manufacturer.includes(item.manufacturer);
     const matchesCalibration = !filters.calibrationDue ||
-      (new Date(item.calibration.nextDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24) <= 7;
+      (item.calibration && 
+        (new Date(item.calibration.nextDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24) <= 7);
     const matchesSearch = searchQuery === '' ||
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.id.toLowerCase().includes(searchQuery.toLowerCase());
@@ -155,11 +149,15 @@ export default function EquipmentManagement({ onEquipmentClick }: EquipmentManag
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm h-[calc(100vh-12rem)]">
         <EquipmentTable 
           equipment={filteredEquipment} 
-          onEquipmentClick={onEquipmentClick} 
+          onEquipmentClick={(id) => {
+            const equipment = filteredEquipment.find(e => e.id === id);
+            if (equipment && onEquipmentClick) {
+              onEquipmentClick(equipment);
+            }
+          }}
           onDeleteEquipment={(id) => {
             setEquipmentToDelete(id);
             setShowDeleteModal(true);
@@ -237,15 +235,15 @@ export default function EquipmentManagement({ onEquipmentClick }: EquipmentManag
                 <div>
                   <h3 className="text-sm font-medium text-gray-900 mb-4">Equipment Type</h3>
                   <div className="space-y-3">
-                    {EQUIPMENT_TYPES.map(type => (
-                      <label key={type} className="flex items-center">
+                    {types.map((type: EquipmentType) => (
+                      <label key={String(type)} className="flex items-center">
                         <input
                           type="checkbox"
                           checked={filters.type.includes(type)}
                           onChange={() => toggleFilter('type', type)}
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
-                        <span className="ml-2 text-sm text-gray-600">{type}</span>
+                        <span className="ml-2 text-sm text-gray-600">{String(type)}</span>
                       </label>
                     ))}
                   </div>
@@ -255,15 +253,15 @@ export default function EquipmentManagement({ onEquipmentClick }: EquipmentManag
                 <div>
                   <h3 className="text-sm font-medium text-gray-900 mb-4">Status</h3>
                   <div className="space-y-3">
-                    {STATUSES.map(status => (
-                      <label key={status} className="flex items-center">
+                    {statuses.map((status: EquipmentStatus) => (
+                      <label key={String(status)} className="flex items-center">
                         <input
                           type="checkbox"
                           checked={filters.status.includes(status)}
                           onChange={() => toggleFilter('status', status)}
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
-                        <span className="ml-2 text-sm text-gray-600">{status}</span>
+                        <span className="ml-2 text-sm text-gray-600">{String(status)}</span>
                       </label>
                     ))}
                   </div>
@@ -273,7 +271,7 @@ export default function EquipmentManagement({ onEquipmentClick }: EquipmentManag
                 <div>
                   <h3 className="text-sm font-medium text-gray-900 mb-4">Location</h3>
                   <div className="space-y-3">
-                    {LOCATIONS.map(location => (
+                    {locations.map((location: string) => (
                       <label key={location} className="flex items-center">
                         <input
                           type="checkbox"
@@ -291,7 +289,7 @@ export default function EquipmentManagement({ onEquipmentClick }: EquipmentManag
                 <div>
                   <h3 className="text-sm font-medium text-gray-900 mb-4">Manufacturer</h3>
                   <div className="space-y-3">
-                    {MANUFACTURERS.map(manufacturer => (
+                    {manufacturers.map((manufacturer: string) => (
                       <label key={manufacturer} className="flex items-center">
                         <input
                           type="checkbox"

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X, Upload } from 'lucide-react';
-import { useEquipment, EquipmentType, EquipmentStatus } from '../../../context/EquipmentContext';
+import { useEquipment } from '../../../context/EquipmentContext';
+import { useMetadata } from '../../../context/MetadataContext';
+import type { EquipmentType, Equipment } from '../../../types/equipment';
 
 interface NewEquipmentModalProps {
   isOpen: boolean;
@@ -9,36 +11,43 @@ interface NewEquipmentModalProps {
 
 export default function NewEquipmentModal({ isOpen, onClose }: NewEquipmentModalProps) {
   const { addEquipment } = useEquipment();
+  const { equipmentTypes, labLocations } = useMetadata();
+  
   const [formData, setFormData] = useState({
     name: '',
-    type: 'HPLC' as EquipmentType,
+    type: (equipmentTypes[0]?.value ?? 'HPLC') as EquipmentType,
     manufacturer: '',
     model: '',
     serialNumber: '',
     location: '',
-    notes: '',
+    description: '',
     calibration: {
       lastDate: '',
       nextDate: '',
-      certificate: '',
       calibratedBy: ''
     }
   });
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    addEquipment({
-      ...formData,
-      status: 'Available',
-      id: `EQ-${Date.now()}`,
-      purchaseDate: new Date().toISOString(),
-      maintenanceHistory: []
-    });
-    onClose();
-  };
+    try {
+      // Validate required fields
+      if (!formData.name || !formData.type || !formData.manufacturer || !formData.model || !formData.serialNumber || !formData.location) {
+        throw new Error('Please fill in all required fields');
+      }
 
+          await addEquipment({
+        ...formData,
+        status: 'Available' as const
+      });      onClose();
+    } catch (error) {
+      console.error('Failed to add equipment:', error);
+      // Here you might want to show an error message to the user
+      alert(error instanceof Error ? error.message : 'Failed to add equipment');
+    }
+  };
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-[900px]">
@@ -81,13 +90,11 @@ export default function NewEquipmentModal({ isOpen, onClose }: NewEquipmentModal
                       onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as EquipmentType }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="HPLC">HPLC</option>
-                      <option value="Centrifuge">Centrifuge</option>
-                      <option value="Microscope">Microscope</option>
-                      <option value="PCR">PCR</option>
-                      <option value="Spectrophotometer">Spectrophotometer</option>
-                      <option value="Balance">Balance</option>
-                      <option value="pH Meter">pH Meter</option>
+                      {equipmentTypes.map(type => (
+                        <option key={type.id} value={type.value}>
+                          {type.value}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -140,11 +147,11 @@ export default function NewEquipmentModal({ isOpen, onClose }: NewEquipmentModal
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Select Location</option>
-                      <option value="Lab 1">Lab 1</option>
-                      <option value="Lab 2">Lab 2</option>
-                      <option value="Lab 3">Lab 3</option>
-                      <option value="Lab 4">Lab 4</option>
-                      <option value="Lab 5">Lab 5</option>
+                      {labLocations.map(location => (
+                        <option key={location.id} value={location.name}>
+                          {location.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -232,8 +239,8 @@ export default function NewEquipmentModal({ isOpen, onClose }: NewEquipmentModal
               <div>
                 <h3 className="text-sm font-medium text-gray-700 border-b pb-2 mb-4">Notes</h3>
                 <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={3}
                   placeholder="Add any notes about this equipment..."

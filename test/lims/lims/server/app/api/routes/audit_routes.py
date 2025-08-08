@@ -4,7 +4,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.db.database import get_db
-from app.schemas import ApiResponse
+from app.api.schemas import ApiResponse
 from app.services.audit_service import AuditService
 
 router = APIRouter(

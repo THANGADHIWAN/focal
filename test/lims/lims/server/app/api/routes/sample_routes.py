@@ -5,7 +5,7 @@ from io import StringIO
 import logging
 
 from app.db.database import get_db
-from app.schemas import ApiResponse, PaginatedResponse, SampleCreate, SampleUpdate, SampleFilter
+from app.api.schemas import ApiResponse, PaginatedResponse, SampleCreate, SampleUpdate, SampleFilter
 from app.services.sample_service import SampleService
 from app.db.models.sample import Sample
 

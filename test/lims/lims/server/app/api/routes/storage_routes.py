@@ -8,8 +8,8 @@ import logging
 
 from app.db.database import get_db
 from app.services.storage_service import StorageService
-from app.schemas import ApiResponse
-from app.schemas.storage import (
+from app.api.schemas import ApiResponse
+from app.api.schemas.storage import (
     BoxCreate, BoxUpdate, BoxResponse,
     FreezerCreate, FreezerUpdate, FreezerResponse
 )
